@@ -1,0 +1,16 @@
+{
+  "version": "0.0.0",
+  "license": "MIT",
+  "scripts": {
+    "commit": "git-cz"
+ },
+ "config": {
+  "commitizen": {
+    "path": "cz-conventional-changelog"
+  },
+  "dependencies": {
+    "commitizen": "^4.2.4",
+    "cz-conventional-changelog": "^3.3.0"
+  }
+}
+}
