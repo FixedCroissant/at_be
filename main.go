@@ -8,11 +8,14 @@ package main
 
 import (
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	"html/template"
 	"log"
 	"main/morestrings"
 	"net/http"
+
+	"github.com/gorilla/mux"
 
 	_ "github.com/go-sql-driver/mysql"
 )
@@ -70,7 +73,13 @@ func Index(w http.ResponseWriter, r *http.Request) {
 		//Sent to response the loop of data from the query.
 		res = append(res, ourCity)
 	}
-	tmpl.ExecuteTemplate(w, "Index", res)
+
+	//Move to JSON
+	//Send message that we hit our endpoint.
+	fmt.Println("Hit Index EndPoint")
+	json.NewEncoder(w).Encode(res)
+
+	//tmpl.ExecuteTemplate(w, "Index", res)
 	defer db.Close()
 }
 
@@ -131,6 +140,9 @@ func Insert(w http.ResponseWriter, r *http.Request) {
 	}
 	defer db.Close()
 
+	//Let's make a message that it was properly hit.
+	fmt.Println("Hit Insert EndPoint")
+
 	//Call function 2 within mail.
 	//Standard message
 	//mail.SendMailOurMail()
@@ -162,7 +174,12 @@ func Edit(w http.ResponseWriter, r *http.Request) {
 		city.Name = name
 		city.Population = population
 	}
-	tmpl.ExecuteTemplate(w, "Edit", city)
+
+	//Remove template
+	//tmpl.ExecuteTemplate(w, "Edit", city)
+	//Update with JSON request
+	json.NewEncoder(w).Encode(city)
+
 	defer db.Close()
 }
 
@@ -181,6 +198,9 @@ func Update(w http.ResponseWriter, r *http.Request) {
 		log.Println("UPDATE: Name: " + name + " | Population: " + population)
 	}
 	defer db.Close()
+	//Let's make a message that it was properly hit.
+	fmt.Println("Hit Update EndPoint")
+
 	http.Redirect(w, r, "/", 301)
 }
 
@@ -194,7 +214,29 @@ func Delete(w http.ResponseWriter, r *http.Request) {
 	delForm.Exec(emp)
 	log.Println("DELETE")
 	defer db.Close()
-	http.Redirect(w, r, "/", 301)
+
+	//Notification that we hit the delete endpoint.
+	fmt.Println("Hit Delete EndPoint")
+	//Write information back.
+	json.NewEncoder(w).Encode(`{Response: "success", Message: "Deleted City!"}`)
+
+}
+
+//Keep things in the routes method
+func handleRoutes() {
+	//Adjust for MUX router
+	myRouter := mux.NewRouter().StrictSlash(true)
+
+	//Add backend routes
+	myRouter.HandleFunc("/index", Index)
+	myRouter.HandleFunc("/show", Show)
+	myRouter.HandleFunc("/new", New)
+	myRouter.HandleFunc("/edit", Edit)
+	myRouter.HandleFunc("/insert", Insert).Methods("POST")
+	myRouter.HandleFunc("/update", Update).Methods("POST")
+	myRouter.HandleFunc("/delete", Delete)
+	//myRouter.HandleFunc("/articles", returnAllArticles)
+	log.Fatal(http.ListenAndServe(":8081", myRouter))
 }
 
 //Run application.
@@ -210,13 +252,7 @@ func main() {
 	http.Handle("/static/", http.StripPrefix("/static/", fs))
 
 	//Handle routes
-	http.HandleFunc("/", Index)
-	http.HandleFunc("/show", Show)
-	http.HandleFunc("/new", New)
-	http.HandleFunc("/edit", Edit)
-	http.HandleFunc("/insert", Insert)
-	http.HandleFunc("/update", Update)
-	http.HandleFunc("/delete", Delete)
+	handleRoutes()
 	//End routes
 
 	log.Fatal(http.ListenAndServe(":8081", nil))
