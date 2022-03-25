@@ -14,6 +14,7 @@ import (
 	"log"
 	"main/morestrings"
 	"net/http"
+	"os"
 
 	"github.com/gorilla/mux"
 
@@ -27,12 +28,19 @@ type City struct {
 	Population int
 }
 
+func envVariable(key string) string {
+	
+	os.Setenv(key, "gopher")
+
+	return os.Getenv(key)
+}
+
 //Database connection information
 func dbConn() (db *sql.DB) {
 	dbDriver := "mysql"
-	dbUser := ""
-	dbPass := ""
-	dbName := ""
+	dbUser := os.Getenv("db_USER")
+	dbPass := os.Getenv("db_PASS")
+	dbName := os.Getenv("db_NAME")
 	db, err := sql.Open(dbDriver, dbUser+":"+dbPass+"@/"+dbName)
 	if err != nil {
 		panic(err.Error())
