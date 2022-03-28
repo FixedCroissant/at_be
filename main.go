@@ -2,6 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
+//go:build ignore
 // +build ignore
 
 package main
@@ -29,10 +30,19 @@ type City struct {
 }
 
 func envVariable(key string) string {
-	
+
 	os.Setenv(key, "gopher")
 
 	return os.Getenv(key)
+}
+
+//Allow CORS for the client side.
+func cors(w *http.ResponseWriter) {
+	(*w).Header().Set("Access-Control-Allow-Origin", "http://localhost:3000")
+	//Allow CORS here
+	//w.Header().Set("Access-Control-Allow-Origin", "http://localhost")
+	//w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
+	//end allow cors.
 }
 
 //Database connection information
@@ -53,6 +63,9 @@ var tmpl = template.Must(template.ParseGlob("templates/*" + ".html"))
 
 //Index
 func Index(w http.ResponseWriter, r *http.Request) {
+	//allow cors.
+	cors(&w)
+
 	db := dbConn()
 	selDB, err := db.Query("SELECT * FROM Cities ORDER BY id ASC")
 
