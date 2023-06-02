@@ -12,6 +12,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"html/template"
+	"io/ioutil"
 	"log"
 	"main/morestrings"
 	"net/http"
@@ -30,7 +31,6 @@ type City struct {
 }
 
 func envVariable(key string) string {
-
 	os.Setenv(key, "gopher")
 
 	return os.Getenv(key)
@@ -38,10 +38,9 @@ func envVariable(key string) string {
 
 //Allow CORS for the client side.
 func cors(w *http.ResponseWriter) {
-	(*w).Header().Set("Access-Control-Allow-Origin", "http://localhost:3000")
 	//Allow CORS here
-	//w.Header().Set("Access-Control-Allow-Origin", "http://localhost")
-	//w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
+	(*w).Header().Set("Access-Control-Allow-Origin", "*")
+	(*w).Header().Set("Access-Control-Allow-Headers", "Content-Type")
 	//end allow cors.
 }
 
@@ -145,33 +144,46 @@ func Show(w http.ResponseWriter, r *http.Request) {
 
 //Insert method
 func Insert(w http.ResponseWriter, r *http.Request) {
+	cors(&w)
+
 	//Get connections
 	db := dbConn()
 	if r.Method == "POST" {
-		name := r.FormValue("name")
-		population := r.FormValue("population")
+
+		reqBody, _ := ioutil.ReadAll(r.Body)
+		var myCity City
+
+		json.Unmarshal(reqBody, &myCity)
+
+		name := myCity.Name
+		population := myCity.Population
+
+		//Insert into db
 		insForm, err := db.Prepare("INSERT INTO Cities(name, population) VALUES(?,?)")
 		if err != nil {
 			panic(err.Error())
 		}
-		//Execute
+		//Execute database
 		insForm.Exec(name, population)
 		//Write to the log the change
-		log.Println("INSERT: Name: " + name + " | Population: " + population)
+		fmt.Printf("INSERT: Name %s, City Population: %d", myCity.Name, myCity.Population)
+
+		//Set Return types
+		w.Header().Set("Content-Type", "application/json")
+		resp := make(map[string]string)
+		resp["message"] = "OK"
+		jsonResp, err := json.Marshal(resp)
+		if err != nil {
+			log.Fatalf("Error happened in JSON marshal. Err: %s", err)
+		}
+		w.Write(jsonResp)
 	}
+
 	defer db.Close()
 
 	//Let's make a message that it was properly hit.
 	fmt.Println("Hit Insert EndPoint")
 
-	//Call function 2 within mail.
-	//Standard message
-	//mail.SendMailOurMail()
-
-	//Custom message.
-	//mail.SendMailCustom("Custom Message")
-
-	http.Redirect(w, r, "/", 301)
 }
 
 func Edit(w http.ResponseWriter, r *http.Request) {
@@ -249,13 +261,13 @@ func handleRoutes() {
 	myRouter := mux.NewRouter().StrictSlash(true)
 
 	//Add backend routes
-	myRouter.HandleFunc("/index", Index)
-	myRouter.HandleFunc("/show", Show)
-	myRouter.HandleFunc("/new", New)
-	myRouter.HandleFunc("/edit", Edit)
-	myRouter.HandleFunc("/insert", Insert).Methods("POST")
-	myRouter.HandleFunc("/update", Update).Methods("POST")
-	myRouter.HandleFunc("/delete", Delete)
+	myRouter.HandleFunc("/api/index", Index)
+	myRouter.HandleFunc("/api/show", Show)
+	myRouter.HandleFunc("/api/new", New)
+	myRouter.HandleFunc("/api/edit", Edit)
+	myRouter.HandleFunc("/api/insert", Insert).Methods("POST")
+	myRouter.HandleFunc("/api/update", Update).Methods("POST")
+	myRouter.HandleFunc("/api/delete", Delete)
 	//myRouter.HandleFunc("/articles", returnAllArticles)
 	log.Fatal(http.ListenAndServe(":8081", myRouter))
 }
@@ -267,6 +279,11 @@ func main() {
 	fmt.Println(morestrings.ReverseRunes("!oG, olleH"))
 
 	log.Println("Server started on: http://localhost:8081")
+	log.Println("Reading Environment Variable")
+	log.Println("ARGUMENTS ARE:")
+	log.Println("DB User:" + os.Getenv("db_USER"))
+	log.Println("Password:" + os.Getenv("db_PASS"))
+	log.Println("Database:" + os.Getenv("db_NAME"))
 
 	//Static Files
 	fs := http.FileServer(http.Dir("./static"))
