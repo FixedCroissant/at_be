@@ -50,7 +50,11 @@ func dbConn() (db *sql.DB) {
 	dbUser := os.Getenv("db_USER")
 	dbPass := os.Getenv("db_PASS")
 	dbName := os.Getenv("db_NAME")
-	db, err := sql.Open(dbDriver, dbUser+":"+dbPass+"@/"+dbName)
+	dbHost := os.Getenv("db_HOST")
+
+	//Adjusted for host.
+	db, err := sql.Open(dbDriver, dbUser+":"+dbPass+"@tcp("+dbHost+")/"+dbName)
+
 	if err != nil {
 		panic(err.Error())
 	}
